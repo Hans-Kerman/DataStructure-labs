@@ -13,6 +13,7 @@
 **/main
 
 # 通用的目标文件和库文件
+compile_commands.json
 *.o
 *.obj
 *.a
