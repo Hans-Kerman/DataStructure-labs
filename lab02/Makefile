@@ -10,7 +10,7 @@ CXX = clang++ # <<< CHANGED
 # -Wall -Wextra: 开启大部分常用的编译警告
 # -g: 添加调试信息，方便使用 gdb/lldb 等工具进行调试
 # -std=c++17: 指定使用C++17标准 (推荐!)
-CXXFLAGS = -Iinclude -Wall -Wextra -g -std=c++17 # <<< CHANGED
+CXXFLAGS = -Iinclude -Wall -Wextra -g -std=c++20 # <<< CHANGED
 
 # 指定链接标志 (如果需要链接外部库，如 -lpthread)
 LDFLAGS =
