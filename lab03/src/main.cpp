@@ -1,101 +1,110 @@
+#include <codecvt>
+#include <cstdio>
+#include <deque>
 #include <iostream>
 #include <iterator>
+#include <queue>
 #include <string>
+#include <algorithm>
 #include <string_view>
 #include <map>
 #include <stack>
+#include <vector>
 using namespace std;
 
-map<char, string> rule_list;
-void add_rule(char c, string_view phrase);
-string rule1(char c);
-string rule2(auto &it);
-void push_string2stack(const string &str, stack<char> &s);
-void sync_list();
+const char tree_node_operators[] = {'&', '|', '>'};
+const static std::map<char, int> operator_priorities = {// 操作符, 优先级
+    { '!', 4 },
+    { '&', 3 },
+    { '|', 2 },
+    { '>', 1 }
+};
+map<char, bool> variables; //变元->布尔
+
+struct Node {
+    char data;
+    bool not_symb;//如果有取反，就False，运算里直接AND它
+    Node* left;
+    Node* right;
+    
+    Node(char data, bool not_symb, Node* left, Node* right) {
+        this->data = data;
+        this->not_symb = not_symb;
+        this->left = left;
+        this->right = right;
+    }
+    bool isTrue() {
+        if (find(begin(tree_node_operators), end(tree_node_operators), this->data) == end(tree_node_operators)) {
+            //不是运算符
+            return variables[data];
+        }
+        bool result;
+        switch (data) {
+            case '&':result = (left->isTrue() && right->isTrue()) && not_symb;break;
+            case '|':result = (left->isTrue() || right->isTrue()) && not_symb;break;
+            case '>':result = !(left->isTrue() == true && right->isTrue() == false) && not_symb;break;
+        }
+        return not_symb ? result : !result;
+    }
+};
+
+Node* make_tree();
+queue<char> toPostfix();//读取输入，抛掉空格，返回一个后缀表达式字符串
 
 int main() {
-    add_rule('B', "tAdA");
-    add_rule('A', "sae");
-    sync_list();
-    string maou_in, maou_out = "", maou_temp = "";
-    cin >> maou_in;
-    for (char maou_in_c : maou_in) {
-        maou_temp += rule1(maou_in_c);
-    }
-    auto it = maou_temp.begin();
-    while (it != maou_temp.end()) {
-        if (*it == '(') {   //检测到嵌套的内部括号 -> 调用rule2并把输出的string压入栈中
-            it = next(it);
-            string inner_op = rule2(it);
-            maou_out += inner_op;
-        } else {
-            string s(1, *it);
-            maou_out += s;
-            it = next(it);
-        }
-    }
-    cout << "魔王说的是：" << maou_out << endl;
-    string result = (maou_out == "saeadacabatsaedsae") ? "check" : "fail";
-    cout << result;
+
     return 0;
 }
 
-void add_rule(char c, string_view phrase) {
-    if ('A' <= c && c <= 'Z') {
-        if (!rule_list.contains(c)) {
-            rule_list[c] = phrase;
+
+queue<char> toPostfix() {
+    vector<char> tmp;
+    int ch;
+    while((ch = getchar()) != '\n' && ch != EOF) {
+        if (ch != ' ') {
+            if (ch == '!' && tmp.back() == '!') {
+                tmp.pop_back();
+            } else {            
+                tmp.push_back(ch);
+            }
         }
     }
-}
-
-string rule1(char c) {
-    auto it = rule_list.find(c);
-    if (it != rule_list.end()) {
-        return it->second; 
-    } else {
-        string s(1, c);
-        return s;
-    }
-}
-
-void sync_list() {
-    for (auto& [key, value] : rule_list) {
-        string op = "";
-        for (char inner_value : value) {
-            op += rule1(inner_value);
+    queue<char> output;
+    stack<char> op_stack;
+    for (char c : tmp) {
+        if (operator_priorities.count(c) == 0) {
+            if (c == '(') {
+                op_stack.push('(');
+            } else if (c == ')') {
+                while (!op_stack.empty() && op_stack.top() != '(') {
+                    output.push(op_stack.top());
+                    op_stack.pop();
+                }
+                if (!op_stack.empty()) {
+                    op_stack.pop();
+                }
+            } else {
+                output.push(c);
+            }
+        } else {//是运算符
+            while (
+                !op_stack.empty() && 
+                op_stack.top() != '(' && 
+                operator_priorities.at(op_stack.top()) >= operator_priorities.at(c)
+            ) {
+                output.push(op_stack.top());
+                op_stack.pop();
+            }
+            op_stack.push(c);
         }
-        value = op;     //修改引用
-        //rule_list[value] = op;
     }
-}
-
-void push_string2stack(const string &str, stack<char> &s) {
-    for (char c : str) {
-        s.push(c);
-    }
-}
-
-string rule2(auto &it) {
-    char theta = *it;
-    it = next(it);
-    string op(1, theta);
-    stack<char> s;
-    while (*it != ')') {
-        if (*it == '(') {   //检测到嵌套的内部括号 -> 调用rule2并把输出的string压入栈中
-            it = next(it);
-            string inner_op = rule2(it);
-            push_string2stack(inner_op, s);
+    while (!op_stack.empty()) {
+        if (op_stack.top() == '(') {
+            cout << "检测到输入错误:不匹配的括号";
         } else {
-            s.push(*it);
-            it = next(it);
+            output.push(op_stack.top());
         }
+        op_stack.pop();
     }
-    it = next(it);
-
-    while (!s.empty()) {
-        op = op + s.top();
-        s.pop();
-        op += op[0];
-    }
-    return op;
+    return output;
 }
