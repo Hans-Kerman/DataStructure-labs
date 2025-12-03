@@ -48,11 +48,12 @@ struct Node {
     }
 };
 
-Node* make_tree();
+Node* make_tree(queue<char> postfix);
 queue<char> toPostfix();//读取输入，抛掉空格，返回一个后缀表达式字符串
 
 int main() {
-
+    Node* root = make_tree(toPostfix());
+    
     return 0;
 }
 
@@ -62,7 +63,7 @@ queue<char> toPostfix() {
     int ch;
     while((ch = getchar()) != '\n' && ch != EOF) {
         if (ch != ' ') {
-            if (ch == '!' && tmp.back() == '!') {
+            if (ch == '!' && !tmp.empty() && tmp.back() == '!') {
                 tmp.pop_back();
             } else {            
                 tmp.push_back(ch);
@@ -107,4 +108,31 @@ queue<char> toPostfix() {
         op_stack.pop();
     }
     return output;
+}
+
+Node* make_tree(queue<char> postfix) {
+    stack<Node*> tmp;
+    char c;
+    while (!postfix.empty()) {
+        c = postfix.front();
+        if (operator_priorities.count(c) == 0) {
+            //是变元
+            if (variables.count(c) == 0) {
+                //新变元
+                variables.at(c) = false;
+            }
+            tmp.push(new Node(c, true, nullptr, nullptr));
+        } else if (c == '!') {
+            tmp.top()->not_symb = !tmp.top()->not_symb;
+        } else {
+            //普通运算符
+            Node* rightnode = tmp.top();
+            tmp.pop();
+            Node* leftnode = tmp.top();
+            tmp.pop();
+            tmp.push(new Node(c, true, leftnode, rightnode));
+        }
+        postfix.pop();
+    }
+    return tmp.top();
 }
