@@ -1,4 +1,4 @@
-#include <codecvt>
+#include <cstddef>
 #include <cstdio>
 #include <deque>
 #include <iostream>
@@ -20,6 +20,7 @@ const static std::map<char, int> operator_priorities = {// 操作符, 优先级
     { '>', 1 }
 };
 map<char, bool> variables; //变元->布尔
+vector<char> variable_list; //变元的列表
 
 struct Node {
     char data;
@@ -34,15 +35,15 @@ struct Node {
         this->right = right;
     }
     bool isTrue() {
+        bool result;
         if (find(begin(tree_node_operators), end(tree_node_operators), this->data) == end(tree_node_operators)) {
             //不是运算符
-            return variables[data];
+            result = variables[data];
         }
-        bool result;
         switch (data) {
-            case '&':result = (left->isTrue() && right->isTrue()) && not_symb;break;
-            case '|':result = (left->isTrue() || right->isTrue()) && not_symb;break;
-            case '>':result = !(left->isTrue() == true && right->isTrue() == false) && not_symb;break;
+            case '&':result = (left->isTrue() && right->isTrue());break;
+            case '|':result = (left->isTrue() || right->isTrue());break;
+            case '>':result = !(left->isTrue() == true && right->isTrue() == false);break;
         }
         return not_symb ? result : !result;
     }
@@ -53,7 +54,30 @@ queue<char> toPostfix();//读取输入，抛掉空格，返回一个后缀表达
 
 int main() {
     Node* root = make_tree(toPostfix());
-    
+    variable_list.reserve(variables.size());
+    for (const auto& [k, v] : variables) {
+        variable_list.push_back(k);
+    }
+    cout << "真值表：" << endl;
+    bool answer = true;
+    for (size_t i = 0; i < (1 << variable_list.size()); i++) {
+        for (size_t j = 0;j < variable_list.size(); j++) {
+            char current_var = variable_list[j];
+            bool value = ((i >> j) & 1);
+            variables[current_var] = value;
+        }
+        for (const auto& [k, v] : variables) {
+            cout << k << ":" << v << ",";   
+        }
+        if (!root->isTrue()) {
+            answer = false;
+        }
+        cout << "输出：" << root->isTrue() << endl;
+    }
+    if (!answer) {
+        cout << "不";
+    } 
+    cout << "是永真式";
     return 0;
 }
 
@@ -119,7 +143,7 @@ Node* make_tree(queue<char> postfix) {
             //是变元
             if (variables.count(c) == 0) {
                 //新变元
-                variables.at(c) = false;
+                variables[c] = false;
             }
             tmp.push(new Node(c, true, nullptr, nullptr));
         } else if (c == '!') {
