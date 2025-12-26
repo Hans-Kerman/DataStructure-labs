@@ -1,8 +1,6 @@
-#include <algorithm>
 #include <iostream>
 #include <set>
 #include <vector>
-#include <functional>
 
 using namespace std;
 
